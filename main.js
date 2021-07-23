@@ -6,6 +6,8 @@ const fs = require('fs')
 dotenv.config()
 
 const port = 3578
+let globalIndex = 0
+const argWrite = process.argv[2] === '-w' || process.argv[2] === '--write'
 
 // Add headers
 // https://stackoverflow.com/a/18311469
@@ -65,13 +67,18 @@ const { readdirSync } = require('fs')
 const getDirectories = source =>
   readdirSync(source, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
+    .filter(dirent => dirent.name !== '.git')
     .map(dirent => dirent.name)
 
-app.get('/*.png', (request, response) => {
+const getImgIndex = token => {
   const numImages = getDirectories(require('path').resolve(__dirname, './data')).length
-  const randVal = xmur3(request.query.t)
-  const imgIndex = randVal % numImages
-  console.log(`picked image ${imgIndex} out of ${numImages} (rand=${randVal} token=${request.query.t})`)
+  // TODO: salt token with server secret to have some spicy security
+  return xmur3(token) % numImages
+}
+
+app.get('/*.png', (request, response) => {
+  const imgIndex = argWrite ? globalIndex : getImgIndex(request.query.t)
+  // console.log(`picked image ${imgIndex} out of ${numImages} (rand=${randVal} token=${request.query.t})`)
   response.writeHead(200, { 'Content-Type': 'image/gif' })
   fs.readFile(`./data/${imgIndex}${request.originalUrl.split('?')[0]}`, (err, data) => {
     if (err) {
@@ -115,19 +122,35 @@ app.post('/', (request, response) => {
   const { token } = request.body
   const callbackUrl = request.body.callback
   const attempt = typeof request.body.captcha === 'string' ? [request.body.captcha] : request.body.captcha === undefined ? [] : request.body.captcha
-  const solution = ['cb-1-2']
-  console.log(attempt)
-  console.log(solution)
-  response.writeHead(200, { 'Content-Type': 'text/html' })
-  if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
-    sendScore(callbackUrl, token, 1)
-    response.end(`you are hooman <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
-  } else {
-    sendScore(callbackUrl, token, 0)
-    response.end(`try again <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
-  }
+  fs.readFile(`./data/${getImgIndex(token)}/solution.json`, 'utf8', (err, data) => {
+    if (err) {
+      console.log(err)
+      return
+    }
+    const solution = JSON.parse(data)
+    // console.log(`attempt=${attempt}`)
+    // console.log(`solution=${solution}`)
+    response.writeHead(200, { 'Content-Type': 'text/html' })
+    if (argWrite) {
+      fs.writeFile(`./data/${globalIndex}/solution.json`, JSON.stringify(attempt), err => {
+        if (err) {
+          console.log(err)
+        }
+      })
+      globalIndex++
+      response.end(`next <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
+      return
+    }
+    if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
+      sendScore(callbackUrl, token, 1)
+      response.end(`you are hooman <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
+    } else {
+      sendScore(callbackUrl, token, 0)
+      response.end(`try again <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
+    }
+  })
 })
 
 app.listen(port, () => {
-  console.log(`App running on port ${port}.`)
+  console.log(`App running on port ${port}. ${argWrite ? '[write mode]' : ''}`)
 })
