@@ -5,9 +5,20 @@ const fetch = require('node-fetch')
 const fs = require('fs')
 dotenv.config()
 
+const countSolutions = source =>
+  fs.readdirSync(source, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .filter(dirent => dirent.name !== '.git')
+    .filter(dirent => fs.existsSync(`./data/${dirent.name}/solution.json`))
+    .map(dirent => dirent.name)
+
 const port = 3578
-let globalIndex = 0
-const argWrite = process.argv[2] === '-w' || process.argv[2] === '--write'
+const argAppend = process.argv[2] === '-a' ||
+  process.argv[2] === '--append'
+const argWrite = process.argv[2] === '-w' ||
+  process.argv[2] === '--write' ||
+  argAppend
+let globalIndex = argAppend ? countSolutions('./data').length : 0
 
 // Add headers
 // https://stackoverflow.com/a/18311469
@@ -62,10 +73,8 @@ const xmur3 = (str) => {
   return (h ^= h >>> 16) >>> 0
 }
 
-const { readdirSync } = require('fs')
-
 const getDirectories = source =>
-  readdirSync(source, { withFileTypes: true })
+  fs.readdirSync(source, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .filter(dirent => dirent.name !== '.git')
     .map(dirent => dirent.name)
@@ -122,6 +131,17 @@ app.post('/', (request, response) => {
   const { token } = request.body
   const callbackUrl = request.body.callback
   const attempt = typeof request.body.captcha === 'string' ? [request.body.captcha] : request.body.captcha === undefined ? [] : request.body.captcha
+  response.writeHead(200, { 'Content-Type': 'text/html' })
+  if (argWrite) {
+    fs.writeFile(`./data/${globalIndex}/solution.json`, JSON.stringify(attempt), err => {
+      if (err) {
+        console.log(err)
+      }
+    })
+    globalIndex++
+    response.end(`next <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
+    return
+  }
   fs.readFile(`./data/${getImgIndex(token)}/solution.json`, 'utf8', (err, data) => {
     if (err) {
       console.log(err)
@@ -130,17 +150,6 @@ app.post('/', (request, response) => {
     const solution = JSON.parse(data)
     // console.log(`attempt=${attempt}`)
     // console.log(`solution=${solution}`)
-    response.writeHead(200, { 'Content-Type': 'text/html' })
-    if (argWrite) {
-      fs.writeFile(`./data/${globalIndex}/solution.json`, JSON.stringify(attempt), err => {
-        if (err) {
-          console.log(err)
-        }
-      })
-      globalIndex++
-      response.end(`next <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
-      return
-    }
     if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
       sendScore(callbackUrl, token, 1)
       response.end(`you are hooman <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
