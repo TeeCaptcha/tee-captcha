@@ -56,8 +56,8 @@ app.get('/style.css', (request, response) => {
     response.end(
       data
         .replaceAll('placeholder-token', request.query.t)
-        .replaceAll('180px', request.query.w || '180px')
-        .replaceAll('101px', request.query.h || '101px')
+        .replaceAll('180', request.query.w || '180')
+        .replaceAll('101', request.query.h || '101')
     )
   })
 })
@@ -109,8 +109,8 @@ app.get('/', (request, response) => {
       data
         .replaceAll('placeholder-token', request.query.t)
         .replaceAll('placeholder-callback', request.query.callback)
-        .replaceAll('query-w', request.query.w || '')
-        .replaceAll('query-h', request.query.h || '')
+        .replaceAll('query-w', request.query.w || '180')
+        .replaceAll('query-h', request.query.h || '101')
     )
   })
 })
@@ -154,11 +154,14 @@ app.post('/', (request, response) => {
     // console.log(`solution=${solution}`)
     if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
       sendScore(callbackUrl, token, 1)
-      response.end('<img alt="success" src="human.svg"></svg><br>henlo hooman!')
+      response.end(
+        `<img alt="success" src="human.svg" height="${request.body.h * 4}px"></svg><br>
+        henlo hooman!`
+      )
     } else {
       sendScore(callbackUrl, token, 0)
       response.end(
-        `<img alt="failure" src="robot.svg"></svg><br>
+        `<img alt="failure" src="robot.svg" height="${request.body.h * 4}px"></svg><br>
         Are you a robot?<br><a href="/?t=${token}&callback=${callbackUrl}">try again</a>`
       )
     }
