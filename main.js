@@ -3,6 +3,7 @@ const app = express()
 const dotenv = require('dotenv')
 const fetch = require('node-fetch')
 const fs = require('fs')
+const Jimp = require('jimp')
 dotenv.config()
 
 const countSolutions = source =>
@@ -85,16 +86,32 @@ const getImgIndex = token => {
   return xmur3(token) % numImages
 }
 
+/*
+const randInt = (min, max) => {
+  return Math.floor(
+    Math.random() * (max - min) + min
+  )
+}
+*/
+
+const randFloat = (min, max) => {
+  return Math.random() * (max - min) + min
+}
+
 app.get('/*.png', (request, response) => {
   const imgIndex = argWrite ? globalIndex : getImgIndex(request.query.t)
   // console.log(`picked image ${imgIndex} out of ${numImages} (rand=${randVal} token=${request.query.t})`)
   response.writeHead(200, { 'Content-Type': 'image/gif' })
-  fs.readFile(`./data/${imgIndex}${request.originalUrl.split('?')[0]}`, (err, data) => {
-    if (err) {
-      response.end('error')
-      return console.log(err)
-    }
-    response.end(data, 'binary')
+  Jimp.read(`./data/${imgIndex}${request.originalUrl.split('?')[0]}`, (err, img) => {
+    if (err) throw err
+
+    img
+      .brightness(randFloat(-0.1, 0.1))
+      .getBuffer(Jimp.MIME_PNG, (err, buffer) => {
+        if (err) throw err
+
+        response.end(buffer, 'binary')
+      })
   })
 })
 
