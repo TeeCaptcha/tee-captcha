@@ -49,7 +49,7 @@ app.use(
 // app.use(express.static('static'))
 
 app.get('/style.css', (request, response) => {
-  response.writeHead(200, { 'Content-Type': 'text/html' })
+  response.writeHead(200, { 'Content-Type': 'text/css' })
   fs.readFile('./static/style.css', 'utf8', (err, data) => {
     if (err) {
       response.end('error')
@@ -58,6 +58,8 @@ app.get('/style.css', (request, response) => {
     response.end(
       data
         .replaceAll('placeholder-token', request.query.t)
+        .replaceAll('180px', request.query.w || '180px')
+        .replaceAll('101px', request.query.h || '101px')
     )
   })
 })
@@ -109,6 +111,8 @@ app.get('/', (request, response) => {
       data
         .replaceAll('placeholder-token', request.query.t)
         .replaceAll('placeholder-callback', request.query.callback)
+        .replaceAll('query-w', request.query.w || '')
+        .replaceAll('query-h', request.query.h || '')
     )
   })
 })
