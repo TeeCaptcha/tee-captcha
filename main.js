@@ -46,8 +46,6 @@ app.use(
   })
 )
 
-// app.use(express.static('static'))
-
 app.get('/style.css', (request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/css' })
   fs.readFile('./static/style.css', 'utf8', (err, data) => {
@@ -156,14 +154,19 @@ app.post('/', (request, response) => {
     // console.log(`solution=${solution}`)
     if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
       sendScore(callbackUrl, token, 1)
-      response.end(`you are hooman <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
+      response.end('<img alt="success" src="human.svg"></svg><br>henlo hooman!')
     } else {
       sendScore(callbackUrl, token, 0)
-      response.end(`try again <br><a href="/?t=${token}&callback=${callbackUrl}">back</a>`)
+      response.end(
+        `<img alt="failure" src="robot.svg"></svg><br>
+        Are you a robot?<br><a href="/?t=${token}&callback=${callbackUrl}">try again</a>`
+      )
     }
   })
 })
 
+app.use(express.static('static'))
+
 app.listen(port, () => {
-  console.log(`App running on port ${port}. ${argWrite ? '[write mode]' : ''}`)
+  console.log(`App running on http://localhost:${port}. ${argWrite ? '[write mode]' : ''}`)
 })
