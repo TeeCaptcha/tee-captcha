@@ -130,7 +130,7 @@ const sendScore = (callbackUrl, token, score) => {
 }
 
 app.post('/', (request, response) => {
-  const { token } = request.body
+  const { token, w, h } = request.body
   const callbackUrl = request.body.callback
   const attempt = typeof request.body.captcha === 'string' ? [request.body.captcha] : request.body.captcha === undefined ? [] : request.body.captcha
   response.writeHead(200, { 'Content-Type': 'text/html' })
@@ -155,14 +155,19 @@ app.post('/', (request, response) => {
     if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
       sendScore(callbackUrl, token, 1)
       response.end(
-        `<img alt="success" src="human.svg" height="${request.body.h * 4}px"></svg><br>
-        henlo hooman!`
+        `
+        <html>
+        <img alt="success" src="human.svg" style="height: calc(${h * 4}px + 2em);margin-top: 1em;"></svg><br>
+        henlo hooman!
+        </html>`
       )
     } else {
       sendScore(callbackUrl, token, 0)
       response.end(
-        `<img alt="failure" src="robot.svg" height="${request.body.h * 4}px"></svg><br>
-        Are you a robot?<br><a href="/?t=${token}&callback=${callbackUrl}">try again</a>`
+        `<html>
+        <img alt="failure" src="robot.svg" style="height: calc(${h * 4}px + 2em);margin-top: 1em;"></svg><br>
+        Are you a robot?<br><a href="/?t=${token}&callback=${callbackUrl}&w=${w}&h=${h}">try again</a>
+        </html>`
       )
     }
   })
