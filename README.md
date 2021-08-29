@@ -21,7 +21,7 @@ Run the backend (this repository)
 
 ```bash
 npm install
-node main.js
+node tee-captcha.js
 ```
 
 The in your application that needs a captcha implement this iframe
