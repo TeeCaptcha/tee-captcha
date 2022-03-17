@@ -133,6 +133,7 @@ app.get('/', (request, response) => {
 })
 
 const sendScore = (callbackUrl, token, score) => {
+  console.log(`sending score to url='${callbackUrl}' token='${token}' score=${score}`)
   fetch(callbackUrl, {
     method: 'post',
     headers: {
