@@ -25,7 +25,7 @@ let globalIndex = argAppend ? countSolutions('./data').length : 0
 /*
   scoreCache
 
-  key: "callbackurl-token"
+  key: hex(host + token)
   value: {score: score, age: Date.now()}
 */
 const scoreCache = {}
@@ -162,15 +162,18 @@ app.get('/', (request, response) => {
   })
 })
 
-app.get('/score/:host/:token', (req, res) => {
-  const host = req.params.host
-  const token = req.params.token
-  res.send(JSON.stringify(scoreCache[encodeURIComponent(`${host}-${token}`)] || [null, null]))
+app.get('/score/:key', (req, res) => {
+  const hexKey = req.params.key
+  if (!scoreCache[hexKey]) {
+    console.log(`Warning invalid score requested key=${hexKey}`)
+  }
+  res.send(JSON.stringify(scoreCache[hexKey] || [null, null]))
 })
 
 const sendScore = (callbackUrl, token, score) => {
   console.log(`sending score to url='${callbackUrl}' token='${token}' score=${score}`)
-  scoreCache[`${callbackUrl}-${token}`] = {score: score, age: Date.now()}
+  const hexKey = Buffer.from(callbackUrl + token, 'utf8').toString('hex')
+  scoreCache[hexKey] = { score: score, age: Date.now() }
   fetch(callbackUrl, {
     method: 'post',
     headers: {
