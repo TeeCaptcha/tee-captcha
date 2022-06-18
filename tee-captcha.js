@@ -165,7 +165,7 @@ app.get('/', (request, response) => {
 app.get('/score/:host/:token', (req, res) => {
   const host = req.params.host
   const token = req.params.token
-  res.send(JSON.stringify(scoreCache[`${host}-${token}`] || [null, null]))
+  res.send(JSON.stringify(scoreCache[encodeURIComponent(`${host}-${token}`)] || [null, null]))
 })
 
 const sendScore = (callbackUrl, token, score) => {
