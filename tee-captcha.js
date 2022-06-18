@@ -25,7 +25,7 @@ let globalIndex = argAppend ? countSolutions('./data').length : 0
 /*
   scoreCache
 
-  key: hex(host + token)
+  key: hex(ip + host + token)
   value: {score: score, age: Date.now()}
 */
 const scoreCache = {}
@@ -164,15 +164,18 @@ app.get('/', (request, response) => {
 
 app.get('/score/:key', (req, res) => {
   const hexKey = req.params.key
+  res.send(JSON.stringify(scoreCache[hexKey] || [null, null]))
   if (!scoreCache[hexKey]) {
     console.log(`Warning invalid score requested key=${hexKey}`)
+  } else {
+    delete scoreCache[hexKey]
   }
-  res.send(JSON.stringify(scoreCache[hexKey] || [null, null]))
 })
 
-const sendScore = (callbackUrl, token, score) => {
-  console.log(`sending score to url='${callbackUrl}' token='${token}' score=${score}`)
-  const hexKey = Buffer.from(callbackUrl + token, 'utf8').toString('hex')
+const sendScore = (req, callbackUrl, token, score) => {
+  const ipAddr = (req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
+  console.log(`sending score to ipAddr=${ipAddr} url='${callbackUrl}' token='${token}' score=${score}`)
+  const hexKey = Buffer.from(ipAddr + callbackUrl + token, 'utf8').toString('hex')
   scoreCache[hexKey] = { score: score, age: Date.now() }
   fetch(callbackUrl, {
     method: 'post',
@@ -211,7 +214,7 @@ app.post('/', (request, response) => {
     // console.log(`attempt=${attempt}`)
     // console.log(`solution=${solution}`)
     if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
-      sendScore(callbackUrl, token, 1)
+      sendScore(request, callbackUrl, token, 1)
       response.end(
         `
         <html>
@@ -220,7 +223,7 @@ app.post('/', (request, response) => {
         </html>`
       )
     } else {
-      sendScore(callbackUrl, token, 0)
+      sendScore(request, callbackUrl, token, 0)
       response.end(
         `<html>
         <img alt="failure" src="robot.svg" style="height: calc(${h * 4}px + 2em);margin-top: 1em;"></svg><br>
