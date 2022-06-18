@@ -4,6 +4,8 @@ const dotenv = require('dotenv')
 const fetch = require('node-fetch')
 const fs = require('fs')
 const Jimp = require('jimp')
+const cron = require('node-cron')
+const { response } = require('express')
 dotenv.config()
 
 const countSolutions = source =>
@@ -20,6 +22,34 @@ const argWrite = process.argv[2] === '-w' ||
   process.argv[2] === '--write' ||
   argAppend
 let globalIndex = argAppend ? countSolutions('./data').length : 0
+/*
+  scoreCache
+
+  key: "callbackurl-token"
+  value: {score: score, age: Date.now()}
+*/
+const scoreCache = {}
+
+// wipe old cache every hour
+cron.schedule('0 * * * *', function() {
+  console.log('---------------------')
+  console.log('Running Cron Job')
+  console.log('Cleaning up score cache')
+  const now = Date.now()
+  const deleteKeys = []
+  for (const [key, value] of Object.entries(scoreCache)) {
+    const diff = now - value.age
+    const diffHours = Math.floor((diff % 86400000) / 3600000)
+    if (diffHours > 1) {
+      console.log(`  delete key=${key} hours=${diffHours}`)
+      deleteKeys.push(key)
+    }
+  }
+  deleteKeys.forEach((key) => {
+    delete scoreCache[key]
+  })
+  console.log('---------------------')
+})
 
 // Add headers
 // https://stackoverflow.com/a/18311469
@@ -132,8 +162,15 @@ app.get('/', (request, response) => {
   })
 })
 
+app.get('/score/:host/:token', (req, res) => {
+  const host = req.params.host
+  const token = req.params.token
+  res.send(JSON.stringify(scoreCache[`${host}-${token}`] || [null, null]))
+})
+
 const sendScore = (callbackUrl, token, score) => {
   console.log(`sending score to url='${callbackUrl}' token='${token}' score=${score}`)
+  scoreCache[`${callbackUrl}-${token}`] = {score: score, age: Date.now()}
   fetch(callbackUrl, {
     method: 'post',
     headers: {
