@@ -167,6 +167,13 @@ app.get('/score/:key', (req, res) => {
   res.send(JSON.stringify(scoreCache[hexKey] || [null, null]))
   if (!scoreCache[hexKey]) {
     console.log(`Warning invalid score requested key=${hexKey}`)
+    const decode = Buffer.from(hexKey, 'hex').toString('utf8')
+    console.log(`  key: ${hexKey}`)
+    console.log(`  key (decoded): ${decode}`)
+    console.log('  valid keys:')
+    console.log(Object.keys(scoreCache))
+    console.log('  valid keys (decode):')
+    console.log(Object.keys(scoreCache).map(k => Buffer.from(k, 'hex').toString('utf8')))
   } else {
     delete scoreCache[hexKey]
   }
