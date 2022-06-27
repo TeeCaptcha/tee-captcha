@@ -156,6 +156,7 @@ app.get('/', (request, response) => {
       data
         .replaceAll('placeholder-token', request.query.t)
         .replaceAll('placeholder-callback', request.query.callback)
+        .replaceAll('placeholder-ip', request.query.ip)
         .replaceAll('query-w', request.query.w || '180')
         .replaceAll('query-h', request.query.h || '101')
     )
@@ -179,14 +180,14 @@ app.get('/score/:key', (req, res) => {
   }
 })
 
-const sendScore = (req, callbackUrl, token, score) => {
+const sendScore = (req, callbackUrl, token, score, serverIp) => {
   // ipAddr should be the ip of the server with the form
   // it is user controlled and messy so it could be empty/wrong
   // if empty we fallback to own ip (WHICH DOES NOT MAKE MUCH SENSE lul)
   //
   // but even if this ip is wrong the captcha still works
   // just the firewall bypass check score feature does not anymore
-  const ipAddr = (req.query.ip || req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
+  const ipAddr = (serverIp || req.query.ip || req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
   const ownIpAddr = (req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
   console.log(`sending score to ipAddr=${ipAddr} from=${ownIpAddr} url='${callbackUrl}' token='${token}' score=${score}`)
   const hexKey = Buffer.from(ipAddr + callbackUrl + token, 'utf8').toString('hex')
@@ -205,7 +206,7 @@ const sendScore = (req, callbackUrl, token, score) => {
 }
 
 app.post('/', (request, response) => {
-  const { token, w, h } = request.body
+  const { token, w, h, ip } = request.body
   const callbackUrl = request.body.callback
   const attempt = typeof request.body.captcha === 'string' ? [request.body.captcha] : request.body.captcha === undefined ? [] : request.body.captcha
   response.writeHead(200, { 'Content-Type': 'text/html' })
@@ -228,7 +229,7 @@ app.post('/', (request, response) => {
     // console.log(`attempt=${attempt}`)
     // console.log(`solution=${solution}`)
     if (attempt.length === solution.length && attempt.every((value, index) => value === solution[index])) {
-      sendScore(request, callbackUrl, token, 1)
+      sendScore(request, callbackUrl, token, 1, ip)
       response.end(
         `
         <html>
@@ -237,11 +238,11 @@ app.post('/', (request, response) => {
         </html>`
       )
     } else {
-      sendScore(request, callbackUrl, token, 0)
+      sendScore(request, callbackUrl, token, 0, ip)
       response.end(
         `<html>
         <img alt="failure" src="robot.svg" style="height: calc(${h * 4}px + 2em);margin-top: 1em;"></svg><br>
-        Are you a robot?<br><a href="/?t=${token}&callback=${callbackUrl}&w=${w}&h=${h}">try again</a>
+        Are you a robot?<br><a href="/?t=${token}&callback=${callbackUrl}&w=${w}&h=${h}&ip=${ip}">try again</a>
         </html>`
       )
     }
