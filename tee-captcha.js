@@ -156,7 +156,7 @@ app.get('/', (request, response) => {
       data
         .replaceAll('placeholder-token', request.query.t)
         .replaceAll('placeholder-callback', request.query.callback)
-        .replaceAll('placeholder-ip', request.query.ip)
+        .replaceAll('query-ip', request.query.ip)
         .replaceAll('query-w', request.query.w || '180')
         .replaceAll('query-h', request.query.h || '101')
     )
