@@ -180,8 +180,15 @@ app.get('/score/:key', (req, res) => {
 })
 
 const sendScore = (req, callbackUrl, token, score) => {
-  const ipAddr = (req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
-  console.log(`sending score to ipAddr=${ipAddr} url='${callbackUrl}' token='${token}' score=${score}`)
+  // ipAddr should be the ip of the server with the form
+  // it is user controlled and messy so it could be empty/wrong
+  // if empty we fallback to own ip (WHICH DOES NOT MAKE MUCH SENSE lul)
+  //
+  // but even if this ip is wrong the captcha still works
+  // just the firewall bypass check score feature does not anymore
+  const ipAddr = (req.query.ip || req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
+  const ownIpAddr = (req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
+  console.log(`sending score to ipAddr=${ipAddr} from=${ownIpAddr} url='${callbackUrl}' token='${token}' score=${score}`)
   const hexKey = Buffer.from(ipAddr + callbackUrl + token, 'utf8').toString('hex')
   scoreCache[hexKey] = { score: score, age: Date.now() }
   fetch(callbackUrl, {
