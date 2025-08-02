@@ -31,7 +31,7 @@ let globalIndex = argAppend ? countSolutions('./data').length : 0
 const scoreCache = {}
 
 // wipe old cache every hour
-cron.schedule('0 * * * *', function() {
+cron.schedule('0 * * * *', function () {
   console.log('---------------------')
   console.log('Running Cron Job')
   console.log('Cleaning up score cache')
@@ -191,7 +191,7 @@ const sendScore = (req, callbackUrl, token, score, serverIp) => {
   const ownIpAddr = (req.header('x-forwarded-for') || req.socket.remoteAddress).split(',')[0]
   console.log(`sending score to ipAddr=${ipAddr} from=${ownIpAddr} url='${callbackUrl}' token='${token}' score=${score}`)
   const hexKey = Buffer.from(ipAddr + callbackUrl + token, 'utf8').toString('hex')
-  scoreCache[hexKey] = { score: score, age: Date.now() }
+  scoreCache[hexKey] = { score, age: Date.now() }
   fetch(callbackUrl, {
     method: 'post',
     headers: {
@@ -199,8 +199,8 @@ const sendScore = (req, callbackUrl, token, score, serverIp) => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      token: token,
-      score: score
+      token,
+      score
     })
   })
 }
