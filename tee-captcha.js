@@ -128,6 +128,19 @@ const randFloat = (min, max) => {
   return Math.random() * (max - min) + min
 }
 
+const getTrustedEndpoints = () => {
+  return [
+    'https://fokkonaut.de',
+    'https://zillyhuhn.com'
+  ]
+}
+
+const isTrustedCallback = (callbackUrl) => {
+  return getTrustedEndpoints().anyOf((trusted) => {
+    return callbackUrl.startsWith(trusted)
+  })
+}
+
 app.get('/*.png', (request, response) => {
   const imgIndex = argWrite ? globalIndex : getImgIndex(request.query.t)
   // console.log(`picked image ${imgIndex} out of ${numImages} (rand=${randVal} token=${request.query.t})`)
@@ -193,13 +206,23 @@ const sendScore = (req, callbackUrl, token, score, serverIp) => {
   const hexKey = Buffer.from(ipAddr + callbackUrl + token, 'utf8').toString('hex')
   scoreCache[hexKey] = { score, age: Date.now() }
 
-  if(!callbackUrl) {
+  if(!callbackUrl || callbackUrl === 'undefined') {
     console.warn('WARNING: got request without callbackUrl!')
     return
   }
-
-  console.log(`fetching callback: ${typeof(callbackUrl)}`)
-  console.log(`fetching callback: ${callbackUrl}`)
+  if(!/^https?:\/\//.test(callbackUrl)) {
+    console.warn(`invalid callback url: ${callbackUrl}`)
+    return
+  }
+  if(!isTrustedCallback(callbackUrl)) {
+    // TODO: without this the captcha backend can be tricked into
+    //       requesting ANY url which seems dangerous
+    //       ideally this list would be automatically be updated at runtime tho
+    //       the implementation just has to send some data to the captcha backend
+    //       if that happens the url gets whitelisted
+    console.warn(`untrusted callback url: ${callbackUrl}`)
+    return
+  }
 
   fetch(callbackUrl, {
     method: 'post',
