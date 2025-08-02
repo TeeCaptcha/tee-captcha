@@ -198,6 +198,8 @@ const sendScore = (req, callbackUrl, token, score, serverIp) => {
     return
   }
 
+  console.log(`fetching callback: ${callbackUrl}`)
+
   fetch(callbackUrl, {
     method: 'post',
     headers: {
