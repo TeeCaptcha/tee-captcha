@@ -192,6 +192,12 @@ const sendScore = (req, callbackUrl, token, score, serverIp) => {
   console.log(`sending score to ipAddr=${ipAddr} from=${ownIpAddr} url='${callbackUrl}' token='${token}' score=${score}`)
   const hexKey = Buffer.from(ipAddr + callbackUrl + token, 'utf8').toString('hex')
   scoreCache[hexKey] = { score, age: Date.now() }
+
+  if(!callbackUrl) {
+    console.warn('WARNING: got request without callbackUrl!')
+    return
+  }
+
   fetch(callbackUrl, {
     method: 'post',
     headers: {
