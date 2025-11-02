@@ -136,7 +136,7 @@ const getTrustedEndpoints = () => {
 }
 
 const isTrustedCallback = (callbackUrl) => {
-  return getTrustedEndpoints().anyOf((trusted) => {
+  return getTrustedEndpoints().some((trusted) => {
     return callbackUrl.startsWith(trusted)
   })
 }
